@@ -38,15 +38,25 @@ function buildRounds(d: Dictée): Round[] {
   return out;
 }
 
+// Fonction corrigée pour être strictement compatible avec le type Round
 function buildSpecial(err: ErrorCounts): Round[] {
   const words = Object.keys(err).sort((a,b) => err[b]-err[a]).slice(0,6);
   if (!words.length) return [];
   const q = shuffle(QCM_POOL);
-  const pat: GameType[] = ['mirror','anagram','blank','anagram','qcm','mirror','blank','anagram'];
-  return pat.slice(0,8).map((t,i) => {
-    if (t === 'qcm') return { type: 'qcm', data: q[i % q.length] };
-    return { type: t, word: words[i % words.length] };
-  });
+  // On utilise des patterns simples (Mirror/Anagram pour les mots, QCM pour la grammaire)
+  const pat: ('mirror' | 'anagram' | 'qcm')[] = ['mirror','anagram','mirror','anagram','qcm','mirror','anagram','qcm'];
+  
+  const out: Round[] = [];
+  for (let i = 0; i < 8; i++) {
+    const t = pat[i];
+    if (t === 'qcm') {
+      out.push({ type: 'qcm', data: q[i % q.length] });
+    } else {
+      // Ici t est forcément 'mirror' ou 'anagram', donc { word: string } est valide
+      out.push({ type: t, word: words[i % words.length] } as Round);
+    }
+  }
+  return out;
 }
 
 export default function App() {
@@ -61,6 +71,7 @@ export default function App() {
   const [key, setKey] = useState(0);
   const [confetti, setConfetti] = useState(false);
   const [parentMode, setParentMode] = useState(false);
+  // Typage explicite pour éviter l'erreur TS7006
   const [parentData, setParentData] = useState<any>({ sessions:0, correct:0, total:0, words:{} });
   const timer = useRef<number|null>(null);
 
@@ -70,28 +81,39 @@ export default function App() {
     getParentStats().then(setParentData); 
   }, []);
 
-  const saveErr = useCallback((c:ErrorCounts) => { setErrCnt(c); saveErrors(c); }, []);
+  const saveErr = useCallback((c: ErrorCounts) => { 
+    setErrCnt(c); 
+    saveErrors(c); 
+  }, []);
+
   const fire = useCallback(() => { 
     setConfetti(true); 
     if(timer.current) clearTimeout(timer.current); 
-    timer.current = setTimeout(()=>setConfetti(false), 1500); 
+    timer.current = setTimeout(() => setConfetti(false), 1500); 
   }, []);
-  useEffect(() => () => { if(timer.current) clearTimeout(timer.current); }, []);
 
-  const startWarm = (i:number) => { setDicIdx(i); setScreen('warmup'); };
-  const startGame = (i:number) => { 
+  useEffect(() => () => { 
+    if(timer.current) clearTimeout(timer.current); 
+  }, []);
+
+  const startWarm = (i: number) => { setDicIdx(i); setScreen('warmup'); };
+  
+  const startGame = (i: number) => { 
     setRounds(buildRounds(DICTEES[i])); 
     setRidx(0); setScore(0); setErrs([]); setKey(0); 
     setScreen('game'); 
   };
+
   const startSpecial = () => { 
     const r = buildSpecial(errCnt); 
     if(!r.length) return; 
-    setDicIdx(null); setRounds(r); setRidx(0); setScore(0); setErrs([]); setKey(0); 
+    setDicIdx(null); 
+    setRounds(r); 
+    setRidx(0); setScore(0); setErrs([]); setKey(0); 
     setScreen('game'); 
   };
 
-  const onDone = (ok:boolean, w:string) => {
+  const onDone = (ok: boolean, w: string) => {
     if(ok) fire();
     const ns = score + (ok ? 1 : 0);
     setScore(ns);
@@ -110,7 +132,8 @@ export default function App() {
         });
         saveProgress({...completed, [DICTEES[dicIdx].id]: pct});
       }
-      setParentData(d => { 
+      // Correction TS2367 et typage de d
+      setParentData((d: any) => { 
         const u = {...d}; 
         u.sessions++; 
         u.total += rounds.length; 
