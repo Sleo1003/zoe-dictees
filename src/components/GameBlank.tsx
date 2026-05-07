@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { norm, shuffle, pick } from '../utils/helpers';
+import { norm, shuffle } from '../utils/helpers';
 import { speak } from '../utils/speech';
 type Props = { phrase: string; mots: string[]; onDone: (ok: boolean, w: string) => void };
 export function GameBlank({ phrase, mots, onDone }: Props) {

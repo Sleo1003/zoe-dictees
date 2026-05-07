@@ -1,3 +1,5 @@
+import type { ErrorCounts, Completed } from '../types';
+
 const KEY_ERR = 'zoe-errors';
 const KEY_STATS = 'zoe-parent-stats';
 const KEY_PROGRESS = 'zoe-progress';
