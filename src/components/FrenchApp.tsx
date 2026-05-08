@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Confetti } from './Confetti';
 import { WarmUp } from './WarmUp';
 import { GameMirror } from './GameMirror';
