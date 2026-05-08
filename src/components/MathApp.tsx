@@ -1,9 +1,10 @@
-interface MathAppProps { onBack: () => void; }
-export default function MathApp({ onBack }: MathAppProps) {
+interface Props { onBack: () => void; }
+export default function MathApp({ onBack }: Props) {
   return (
-    <div style={{ padding: 24, textAlign: 'center' }}>
-      <button onClick={onBack}>⬅ Retour</button>
-      <h1>🔢 Maths - Bientôt disponible</h1>
+    <div style={{ minHeight: '100vh', background: '#1a1528', padding: 24, color: '#ece6f8', textAlign: 'center' }}>
+      <button onClick={onBack} style={{ marginBottom: 24, background: 'none', border: 'none', color: '#e0c07a', cursor: 'pointer' }}>← Retour</button>
+      <h2>🔮 Mathématiques</h2>
+      <p style={{ color: '#a0a0b8', marginTop: 12 }}>Module en cours de construction. Bientôt disponible.</p>
     </div>
   );
 }
