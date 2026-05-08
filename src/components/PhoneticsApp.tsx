@@ -1,77 +1,75 @@
 import { useState, useEffect } from 'react';
+import { PHONETICS } from '../data/content';
 
-interface PhoneticsAppProps { onBack: () => void; }
-
-const SOUNDS = {
-  fr: [{ id: 'on', label: 'Son ON', words: ['lion', 'maison', 'bonbon'], tip: 'L\'air passe par le nez ' },
-       { id: 'ch', label: 'Son CH', words: ['chat', 'chocolat', 'marche'], tip: 'Comme un chuchotement 🤫' }],
-  en: [{ id: 'th', label: 'TH sound', words: ['think', 'three', 'bath'], tip: 'Tongue between teeth 👅' },
-       { id: 'sh', label: 'SH sound', words: ['ship', 'fish', 'she'], tip: 'Quiet like the sea 🌊' }]
-};
+interface PhoneticsAppProps {
+  onBack: () => void;
+}
 
 export default function PhoneticsApp({ onBack }: PhoneticsAppProps) {
-  const [lang, setLang] = useState<'fr' | 'en'>('fr');
-  const [selected, setSelected] = useState<any>(null);
-  const [acknowledged, setAcknowledged] = useState(false);
+  const [activeSound, setActiveSound] = useState<any>(null);
 
-  const playSound = (word: string) => {
+  const speak = (text: string) => {
     if ('speechSynthesis' in window) {
-      const u = new SpeechSynthesisUtterance(word);
-      u.lang = lang === 'fr' ? 'fr-FR' : 'en-US';
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'fr-FR';
       u.rate = 0.8;
-      speechSynthesis.speak(u);
+      window.speechSynthesis.speak(u);
     }
   };
 
-  if (!selected) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#1a1528', padding: 24, color: '#ece6f8' }}>
-        <button onClick={onBack} style={{ marginBottom: 16, background: 'none', border: 'none', color: '#a78bfa', cursor: 'pointer' }}>← Retour</button>
-        <h2 style={{ marginBottom: 16 }}>🔊 Atelier des Sons</h2>
-        <div style={{ display: 'flex', gap: 12, marginBottom: 24, justifyContent: 'center' }}>
-          <button onClick={() => setLang('fr')} style={{ padding: '8px 16px', borderRadius: 8, background: lang === 'fr' ? '#d4a0c8' : '#252036', border: 'none', color: '#fff', cursor: 'pointer' }}>🇫🇷 Français</button>
-          <button onClick={() => setLang('en')} style={{ padding: '8px 16px', borderRadius: 8, background: lang === 'en' ? '#7ec8c0' : '#252036', border: 'none', color: '#fff', cursor: 'pointer' }}>🇬🇧 English</button>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, maxWidth: 400, margin: '0 auto' }}>
-          {SOUNDS[lang].map((s: any) => (
-            <button key={s.id} onClick={() => setSelected(s)} style={{ padding: 16, borderRadius: 12, background: '#252036', border: '1px solid #444', color: '#fff', cursor: 'pointer', textAlign: 'left' }}>
-              <div style={{ fontWeight: 800 }}>{s.label}</div>
-              <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>{s.words.join(' • ')}</div>
+  return (
+    <div style={{ minHeight: '100vh', padding: 24, background: '#F8FAFC' }}>
+      <button onClick={onBack} style={{ marginBottom: 24, padding: '8px 16px', borderRadius: 12, background: '#E2E8F0', border: 'none', cursor: 'pointer', fontWeight: 700 }}>
+        ← Retour Français
+      </button>
+
+      <h2 style={{ textAlign: 'center', color: '#334155', marginBottom: 24 }}>🗣️ Sons et Lettres</h2>
+      
+      {/* Grille des sons */}
+      {!activeSound && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, maxWidth: 400, margin: '0 auto' }}>
+          {PHONETICS.map((p, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveSound(p)}
+              style={{
+                height: 100, borderRadius: 16, background: p.color, border: 'none', cursor: 'pointer',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+              }}
+            >
+              <span style={{ fontSize: 40, fontWeight: 900, color: '#fff', textShadow: '2px 2px 0 rgba(0,0,0,0.2)' }}>{p.letter}</span>
+              <span style={{ fontSize: 24 }}>{p.emoji}</span>
             </button>
           ))}
         </div>
-      </div>
-    );
-  }
+      )}
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#1a1528', padding: 24, color: '#ece6f8', textAlign: 'center' }}>
-      <button onClick={() => { setSelected(null); setAcknowledged(false); }} style={{ marginBottom: 16, background: 'none', border: 'none', color: '#a78bfa', cursor: 'pointer' }}>← Choisir un son</button>
-      <h2 style={{ marginBottom: 8 }}>{selected.label}</h2>
-      <p style={{ color: '#a0a0b8', marginBottom: 24, fontStyle: 'italic' }}>💡 {selected.tip}</p>
-      
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginBottom: 32 }}>
-        {selected.words.map((w: string, i: number) => (
-          <button key={i} onClick={() => playSound(w)} style={{ padding: '12px 20px', borderRadius: 12, background: '#252036', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontSize: 18 }}>
-            🔊 {w}
-          </button>
-        ))}
-      </div>
-
-      <div style={{ background: '#2a2540', borderRadius: 16, padding: 20, maxWidth: 400, margin: '0 auto' }}>
-        <p style={{ marginBottom: 16, lineHeight: 1.5 }}>
-          Écoute bien la bouche et l'air. {lang === 'fr' ? 'As-tu compris comment faire ce son ?' : 'Did you notice the mouth position?'}
-        </p>
-        {!acknowledged ? (
-          <button onClick={() => setAcknowledged(true)} style={{ padding: '12px 24px', borderRadius: 12, background: '#a78bfa', border: 'none', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
-            ✅ J\'ai compris le pattern
-          </button>
-        ) : (
-          <button onClick={() => { setSelected(null); setAcknowledged(false); }} style={{ padding: '12px 24px', borderRadius: 12, background: '#4ade80', border: 'none', color: '#000', fontWeight: 800, cursor: 'pointer' }}>
-            🌟 Bravo ! Suivant →
-          </button>
-        )}
-      </div>
+      {/* Vue Détail du Son */}
+      {activeSound && (
+        <div style={{ maxWidth: 400, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: 120, fontWeight: 900, color: activeSound.color, lineHeight: 1, margin: '20px 0' }}>
+            {activeSound.letter}
+          </div>
+          <div style={{ fontSize: 80, marginBottom: 20 }}>{activeSound.emoji}</div>
+          <h3 style={{ fontSize: 24, color: '#334155' }}>{activeSound.word}</h3>
+          
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 32 }}>
+            <button
+              onClick={() => speak(activeSound.sound)}
+              style={{ padding: '12px 24px', borderRadius: 16, background: '#4F46E5', color: '#fff', border: 'none', fontSize: 18, cursor: 'pointer' }}
+            >
+              🔊 Écouter le son
+            </button>
+            <button
+              onClick={() => setActiveSound(null)}
+              style={{ padding: '12px 24px', borderRadius: 16, background: '#64748B', color: '#fff', border: 'none', fontSize: 18, cursor: 'pointer' }}
+            >
+              Autres sons
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

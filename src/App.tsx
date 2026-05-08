@@ -1,3 +1,4 @@
+import './index.css';
 import { useState } from 'react';
 import HomePage from './components/HomePage';
 import FrenchApp from './components/FrenchApp';
