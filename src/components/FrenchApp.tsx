@@ -8,7 +8,7 @@ import { GameTile } from './GameTile';
 import { GameQCM } from './GameQCM';
 import { DICTEES, QCM_POOL, GT, LABELS, COLORS, ROUNDS } from '../data/content';
 import { shuffle } from '../utils/helpers';
-import { getErrors, saveErrors, getProgress, saveProgress, getParentStats, saveParentStats, resetAll } from '../utils/storage';
+import { getErrors, saveErrors, getProgress, saveProgress, getParentStats, saveParentStats, resetAll as _resetAll } from '../utils/storage';
 import type { Dictée, Round, ErrorCounts, Completed, Screen, GameType } from '../types';
 
 // Interface pour recevoir le bouton "Retour" du parent
@@ -54,13 +54,13 @@ export default function FrenchApp({ onBack }: FrenchAppProps) {
   const [rounds, setRounds] = useState<Round[]>([]);
   const [ridx, setRidx] = useState(0);
   const [score, setScore] = useState(0);
-  const [errs, setErrs] = useState<string[]>([]);
+  const [_errs, setErrs] = useState<string[]>([]);
   const [errCnt, setErrCnt] = useState<ErrorCounts>({});
   const [completed, setCompleted] = useState<Completed>({});
   const [key, setKey] = useState(0);
   const [confetti, setConfetti] = useState(false);
   const [parentMode, setParentMode] = useState(false);
-  const [parentData, setParentData] = useState<any>({ sessions:0, correct:0, total:0, words:{} });
+  const [_parentData, setParentData] = useState<any>({ sessions:0, correct:0, total:0, words:{} });
   const timer = useRef<number|null>(null);
 
   useEffect(() => { getErrors().then(setErrCnt); getProgress().then(setCompleted); getParentStats().then(setParentData); }, []);
