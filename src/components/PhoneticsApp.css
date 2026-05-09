@@ -1,0 +1,48 @@
+// src/components/PhoneticsApp.tsx
+import { useState } from 'react';
+import { ContextCards } from './SoundContrastExplorer/ContextCards';
+import type { LanguageCode } from '../types';
+import { playAudio } from '../utils/speech';
+
+const DEMO_PAIR = {
+  grapheme: 'ch',
+  french: {
+    word: 'chat', ipa: '/ʃa/', audio: 'chat',
+    rule: { grapheme: 'ch', ipa: '/ʃ/', language: 'fr', articulatoryCue: 'Lèvres arrondies, son doux "chhh"', description: '' }
+  },
+  english: {
+    word: 'chef', ipa: '/tʃɛf/', audio: 'chef',
+    rule: { grapheme: 'ch', ipa: '/tʃ/', language: 'en', articulatoryCue: 'Son court et explosif "tch!"', description: '' }
+  },
+  logicPrompt: 'Écoute la différence', masteryBadge: '🕵️'
+} as any;
+
+export default function PhoneticsApp() {
+  const [selectedLang, setSelectedLang] = useState<LanguageCode | null>(null);
+  const [status, setStatus] = useState('Prêt');
+
+  const handleListen = (lang: LanguageCode) => {
+    const text = lang === 'fr' ? 'chat' : 'chef';
+    playAudio(text).then(() => setStatus(`🔊 Écoute : ${text}`));
+  };
+
+  return (
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: '2rem 1rem', fontFamily: 'system-ui, sans-serif' }}>
+      <h1 style={{ textAlign: 'center', fontSize: '1.6rem', marginBottom: '1.5rem' }}>🔊 Explorateur de Sons</h1>
+      
+      <div style={{ 
+        padding: '1.5rem', background: '#f0f9ff', borderRadius: '16px', 
+        textAlign: 'center', marginBottom: '2rem'
+      }}>
+        <p style={{ fontSize: '1.2rem', margin: 0, color: '#0369a1' }}>{status}</p>
+      </div>
+
+      <ContextCards
+        pair={DEMO_PAIR}
+        selectedLanguage={selectedLang}
+        onLanguageSelect={setSelectedLang}
+        onShowMouthAnimation={(lang) => handleListen(lang)}
+      />
+    </div>
+  );
+}
