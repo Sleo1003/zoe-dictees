@@ -3,11 +3,11 @@ import { useEffect, useRef } from 'react';
 type Subject = 'home' | 'french' | 'english' | 'math';
 
 interface HomePageProps {
-  onSelectSubject: (s: string) => void;  // ← 'string' pour matcher App.tsx
-  onOpenDashboard: () => void;            // ← Nouvelle prop pour le bouton parents
+  onSelectSubject: (s: string) => void;
+  onOpenDashboard: () => void;
 }
 
-export default function HomePage({ onSelectSubject }: HomePageProps) {
+export default function HomePage({ onSelectSubject, onOpenDashboard }: HomePageProps) {
   const sparkleRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,6 +31,27 @@ export default function HomePage({ onSelectSubject }: HomePageProps) {
 
   return (
     <div className="page">
+      {/* Bouton Parents */}
+      <button
+        onClick={onOpenDashboard}
+        style={{
+          position: 'absolute',
+          top: 16,
+          right: 16,
+          padding: '8px 14px',
+          borderRadius: 12,
+          background: '#F1F5F9',
+          border: 'none',
+          fontSize: 13,
+          fontWeight: 600,
+          color: '#475569',
+          cursor: 'pointer',
+          zIndex: 10
+        }}
+      >
+        👨‍👩‍ Parents
+      </button>
+
       <div className="ambient">
         <div className="orb orb-1" />
         <div className="orb orb-2" />
@@ -57,7 +78,6 @@ export default function HomePage({ onSelectSubject }: HomePageProps) {
         <div className="orbit"><div className="orbit-dot dot-a" /><div className="orbit-dot dot-b" /></div>
         <div className="glow-ring" />
         <div className="char-img-wrap">
-          {/* 📸 Mets ton image dans public/zoe.jpg */}
           <img src="/zoe.jpg" alt="Zoé" style={{ objectPosition: 'center 10%' }} />
         </div>
         <div className="rune rune-tl" /><div className="rune rune-tr" />

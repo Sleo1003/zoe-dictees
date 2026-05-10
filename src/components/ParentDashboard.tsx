@@ -3,7 +3,10 @@ import { useState, useEffect } from 'react';
 import { getErrors, getProgress, getParentStats } from '../utils/storage';
 import type { ErrorCounts, Completed } from '../types';
 
-interface ParentDashboardProps { profileId: string; onBack: () => void; }
+interface ParentDashboardProps {
+  profileId: string;
+  onBack: () => void;
+}
 
 export default function ParentDashboard({ profileId, onBack }: ParentDashboardProps) {
   const [stats, setStats] = useState({ sessions: 0, correct: 0, total: 0, lastDate: '' });
@@ -12,12 +15,41 @@ export default function ParentDashboard({ profileId, onBack }: ParentDashboardPr
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!profileId) {
+      setLoading(false);
+      return;
+    }
     Promise.all([getParentStats(profileId), getErrors(profileId), getProgress(profileId)])
-      .then(([s, e, p]) => { setStats(s); setErrors(e); setProgress(p); setLoading(false); });
+      .then(([s, e, p]) => {
+        setStats(s);
+        setErrors(e);
+        setProgress(p);
+        setLoading(false);
+      });
   }, [profileId]);
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#64748B' }}>⏳ Chargement...</div>;
 
+  // Pas de profil sélectionné
+  if (!profileId) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC' }}>
+        <div style={{ textAlign: 'center', maxWidth: 400, background: '#fff', borderRadius: 24, padding: 32, boxShadow: '0 6px 24px rgba(0,0,0,0.06)' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>👨‍👩‍</div>
+          <h2 style={{ color: '#1E293B', marginBottom: 12 }}>Espace parents</h2>
+          <p style={{ color: '#64748B', marginBottom: 24 }}>
+            Aucun profil sélectionné.<br />
+            Veuillez d'abord choisir ou créer un profil enfant.
+          </p>
+          <button onClick={onBack} style={{ padding: '10px 24px', borderRadius: 12, background: '#4F46E5', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer' }}>
+            ← Retour aux profils
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Statistiques du profil
   const topErrors = Object.entries(errors).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const dictCount = Object.keys(progress).length;
   const avgScore = dictCount > 0 ? Math.round(Object.values(progress).reduce((a, b) => a + b, 0) / dictCount) : 0;
@@ -29,6 +61,7 @@ export default function ParentDashboard({ profileId, onBack }: ParentDashboardPr
           <h2 style={{ margin: 0, color: '#1E293B' }}>👨‍👩‍ Tableau de bord</h2>
           <button onClick={onBack} style={{ padding: '8px 16px', borderRadius: 12, background: '#E2E8F0', border: 'none', fontWeight: 700, color: '#475569', cursor: 'pointer' }}>← Retour</button>
         </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
           <div style={{ background: '#F0F9FF', borderRadius: 16, padding: 16, textAlign: 'center' }}>
             <div style={{ fontSize: 28, fontWeight: 900, color: '#4F46E5' }}>{stats.sessions}</div>
@@ -43,6 +76,7 @@ export default function ParentDashboard({ profileId, onBack }: ParentDashboardPr
             <div style={{ fontSize: 13, color: '#64748B', marginTop: 4 }}>Erreurs fréquentes</div>
           </div>
         </div>
+
         <h3 style={{ color: '#334155', marginBottom: 12 }}>📊 Progression par dictée</h3>
         {Object.keys(progress).length === 0 ? <p style={{ color: '#64748B', fontStyle: 'italic' }}>Aucune dictée terminée.</p> : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
@@ -51,6 +85,7 @@ export default function ParentDashboard({ profileId, onBack }: ParentDashboardPr
             ))}
           </div>
         )}
+
         <h3 style={{ color: '#334155', marginBottom: 12 }}>⚠️ Mots à retravailler</h3>
         {topErrors.length === 0 ? <p style={{ color: '#64748B', fontStyle: 'italic' }}>Aucune erreur récurrente. Bravo !</p> : (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
@@ -62,6 +97,7 @@ export default function ParentDashboard({ profileId, onBack }: ParentDashboardPr
             ))}
           </ul>
         )}
+
         <div style={{ marginTop: 24, padding: 16, background: '#F8FAFC', borderRadius: 12, border: '1px solid #E2E8F0' }}>
           <p style={{ margin: 0, color: '#64748B', fontSize: 14, textAlign: 'center' }}>📅 Dernière activité : {stats.lastDate || 'Aucune'}</p>
         </div>

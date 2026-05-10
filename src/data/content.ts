@@ -211,7 +211,7 @@ export const PLANTS_QS = [
 ];
 
 // ─── MATHS — NOMBRES ─────────────────────────────────────────────────────────
-export const GRID_NUMS = Array.from({ length: 69 }, (_, i) => i + 1);
+export const GRID_NUMS = Array.from({ length: 100 }, (_, i) => i + 1);
 
 // Paires pour l'addition
 export const ADD_PAIRS: [number, number][] = [

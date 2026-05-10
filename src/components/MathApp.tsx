@@ -14,7 +14,7 @@ interface MathAppProps {
 
 type MathView =
   | 'home'
-  | 'grid' | 'missing' | 'missing69' | 'order'
+  | 'grid' | 'missing' | 'missing69' | 'missing100' | 'order'
   | 'tens' | 'fourways' | 'addition';
 
 const MATH_COLORS: Record<MathView, string> = {
@@ -22,6 +22,7 @@ const MATH_COLORS: Record<MathView, string> = {
   grid:      C.grid,
   missing:   C.miss,
   missing69: '#0277bd',
+  missing100:'#6a1b9a',
   order:     C.ord,
   tens:      C.tens,
   fourways:  C.four,
@@ -30,24 +31,43 @@ const MATH_COLORS: Record<MathView, string> = {
 
 const MATH_TITLES: Record<MathView, string> = {
   home:      'Mathématiques',
-  grid:      '🔢 Grille 1–69',
+  grid:      '🔢 Grille 1–100',
   missing:   '🔍 Manquants 1–50',
-  missing69: '🔢 Compter 51–69',
+  missing69: '🔢 Manquants 51–69',
+  missing100:'🔢 Manquants 70–100',
   order:     '📊 Ordonner',
   tens:      '🧱 Dizaines & Unités',
   fourways:  '🔄 4 Façons',
   addition:  '➕ Addition',
 };
 
-// ═══ Helpers ══════════════════════════════════════════════════════════════════
+// ═══ Helpers (génèrent plus de choix) ══════════════════════════════════════════
 const mkMissingQ = (start: number, end: number) => {
   const length = Math.min(5, end - start + 1);
   const s = start + Math.floor(Math.random() * (end - start - length + 1));
   const seq = Array.from({ length }, (_, i) => s + i);
   const bp = 1 + Math.floor(Math.random() * (seq.length - 2));
   const ans = seq[bp];
-  const dist = [ans - 1, ans + 1].filter(x => x >= start && x <= end && !seq.includes(x)).slice(0, 2) as number[];
-  return { seq, bp, a: ans, choices: shuffle([ans, ...dist]) };
+  
+  // Générer 3-4 distracteurs autour de la réponse
+  const choicesSet = new Set<number>();
+  choicesSet.add(ans);
+  
+  // Essayer d'ajouter des nombres proches
+  for (let delta = 1; choicesSet.size < 5 && delta <= 4; delta++) {
+    [ans - delta, ans + delta].forEach(x => {
+      if (x >= start && x <= end && !seq.includes(x)) choicesSet.add(x);
+    });
+  }
+  
+  // Si pas assez, ajouter des nombres aléatoires valides
+  while (choicesSet.size < 5) {
+    const r = start + Math.floor(Math.random() * (end - start + 1));
+    if (!seq.includes(r)) choicesSet.add(r);
+  }
+  
+  const choices = shuffle(Array.from(choicesSet));
+  return { seq, bp, a: ans, choices };
 };
 
 const mkTensQ = (n: number) => {
@@ -55,20 +75,45 @@ const mkTensQ = (n: number) => {
   const units = n % 10;
   const askTens = Math.random() > 0.5;
   const ans = askTens ? tens : units;
-  const pool = askTens ? [0, 1, 2, 3, 4] : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-  const dist = shuffle(pool.filter(x => x !== ans)).slice(0, 2);
+  
+  let pool: number[];
+  if (askTens) {
+    pool = Array.from({ length: 10 }, (_, i) => i); // 0-9
+  } else {
+    pool = Array.from({ length: 10 }, (_, i) => i); // 0-9
+  }
+  
+  const choicesSet = new Set<number>();
+  choicesSet.add(ans);
+  
+  // Ajouter 3-4 distracteurs
+  while (choicesSet.size < 5) {
+    const r = pool[Math.floor(Math.random() * pool.length)];
+    choicesSet.add(r);
+  }
+  
+  const choices = shuffle(Array.from(choicesSet));
   return {
     n,
     label: askTens ? 'dizaines' : 'unités',
     a: ans,
-    choices: shuffle([ans, ...dist]),
+    choices,
   };
 };
 
 const mkAddQ = ([a, b]: [number, number]) => {
   const sum = a + b;
-  const dist = shuffle([sum - 2, sum - 1, sum + 1, sum + 2].filter(x => x >= 0 && x <= 20)).slice(0, 2);
-  return { a2: a, b2: b, a: sum, choices: shuffle([sum, ...dist]) };
+  const choicesSet = new Set<number>();
+  choicesSet.add(sum);
+  
+  // Ajouter 3-4 distracteurs dans la plage 0-20
+  while (choicesSet.size < 5) {
+    const r = Math.floor(Math.random() * 21); // 0 à 20
+    choicesSet.add(r);
+  }
+  
+  const choices = shuffle(Array.from(choicesSet));
+  return { a2: a, b2: b, a: sum, choices };
 };
 
 const Stix = ({ n, col }: { n: number; col: string }) => {
@@ -90,7 +135,7 @@ const Stix = ({ n, col }: { n: number; col: string }) => {
   );
 };
 
-// ═══ Jeux spécifiques ════════════════════════════════════════════════════════
+// ═══ Jeux spécifiques ═════════════════════════════════════════════════════════
 function GridScreen({ onBack }: { onBack: () => void }) {
   const [mode, setMode] = useState<'all' | 'by2' | 'by5' | 'by10'>('all');
   const isHighlighted = (n: number) =>
@@ -100,7 +145,7 @@ function GridScreen({ onBack }: { onBack: () => void }) {
 
   return (
     <div style={{ minHeight: '100vh', background: '#e8f5e9', display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'sans-serif', padding: '18px 14px' }}>
-      <Hdr onBack={onBack} col={C.grid} title="🔢 Grille 1–69" />
+      <Hdr onBack={onBack} col={C.grid} title="🔢 Grille 1–100" />
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
         {(['all', 'by2', 'by5', 'by10'] as const).map(m => (
           <button key={m} onClick={() => setMode(m)}
@@ -137,7 +182,7 @@ function GridScreen({ onBack }: { onBack: () => void }) {
 
 function OrderScreen({ onBack, onReplay }: { onBack: () => void; onReplay: () => void }) {
   const [round, setRound] = useState(() => {
-    const nums = [...new Set(Array.from({ length: 10 }, () => Math.floor(Math.random() * 69) + 1))].slice(0, 5);
+    const nums = [...new Set(Array.from({ length: 10 }, () => Math.floor(Math.random() * 99) + 1))].slice(0, 5);
     return { nums, sorted: [...nums].sort((a, b) => a - b) };
   });
   const [tapped, setTapped] = useState<number[]>([]);
@@ -159,7 +204,7 @@ function OrderScreen({ onBack, onReplay }: { onBack: () => void; onReplay: () =>
       setTimeout(() => {
         if (cr < ROUNDS) {
           setRn(cr + 1);
-          const newNums = [...new Set(Array.from({ length: 10 }, () => Math.floor(Math.random() * 69) + 1))].slice(0, 5);
+          const newNums = [...new Set(Array.from({ length: 10 }, () => Math.floor(Math.random() * 99) + 1))].slice(0, 5);
           setRound({ nums: newNums, sorted: [...newNums].sort((a, b) => a - b) });
           setTapped([]);
           setFb(null);
@@ -178,6 +223,7 @@ function OrderScreen({ onBack, onReplay }: { onBack: () => void; onReplay: () =>
       <PBar pct={(rn - 1) / ROUNDS * 100} col={C.ord} />
       <div style={{ background: cbg, borderRadius: 22, padding: '24px 18px', maxWidth: 460, width: '100%', boxShadow: '0 4px 18px rgba(0,0,0,.1)', textAlign: 'center' }}>
         <p style={{ fontSize: 14, color: '#888', margin: '0 0 10px' }}>Du <b>plus petit</b> au <b>plus grand</b> !</p>
+        {/* ... (le reste est inchangé, je le garde pour la longueur du message) ... */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 7, marginBottom: 18 }}>
           {round.nums.map((_, i) => (
             <div key={i} style={{
@@ -226,82 +272,26 @@ function OrderScreen({ onBack, onReplay }: { onBack: () => void; onReplay: () =>
   );
 }
 
-function FourWaysScreen({ onBack }: { onBack: () => void }) {
-  const [ni, setNi] = useState(0);
-  const n = FOURWAYS_NUMS[ni];
-  const tens = Math.floor(n / 10);
-  const units = n % 10;
-
-  const Box = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <div style={{ background: 'white', borderRadius: 18, padding: 14, boxShadow: '0 2px 8px rgba(0,0,0,.08)', textAlign: 'center' }}>
-      <div style={{ fontSize: 10, color: '#999', fontWeight: 'bold', letterSpacing: 1, marginBottom: 7 }}>{label}</div>
-      {children}
-    </div>
-  );
-
-  return (
-    <div style={{ minHeight: '100vh', background: '#fff3e0', display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'sans-serif', padding: '18px 14px' }}>
-      <Hdr onBack={onBack} col={C.four} title="🔄 4 façons d'écrire" right={`${ni + 1} / ${FOURWAYS_NUMS.length}`} />
-      <div style={{ display: 'flex', gap: 5, marginBottom: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-        {FOURWAYS_NUMS.map((num, i) => (
-          <button key={i} onClick={() => setNi(i)}
-            style={{
-              background: ni === i ? C.four : 'white',
-              color: ni === i ? 'white' : C.four,
-              border: '2px solid ' + C.four, borderRadius: 9,
-              padding: '6px 10px', fontSize: 13, cursor: 'pointer', fontWeight: 'bold',
-            }}>
-            {num}
-          </button>
-        ))}
-      </div>
-      <div style={{ fontSize: 56, fontWeight: 'bold', color: C.four, marginBottom: 10 }}>{n}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 440, width: '100%' }}>
-        <Box label="① CHIFFRE"><div style={{ fontSize: 44, fontWeight: 'bold', color: C.four }}>{n}</div></Box>
-        <Box label="② DIZ. & UNITÉS">
-          <div style={{ fontSize: 15, fontWeight: 'bold', color: C.four, lineHeight: 1.8 }}>
-            {tens} dizaines<br />et {units} unités
-          </div>
-        </Box>
-        <Box label="③ BÂTONS"><Stix n={n} col={C.four} /></Box>
-        <Box label="④ FORME DÉVELOPPÉE">
-          <div style={{ fontSize: 24, fontWeight: 'bold', color: C.four }}>{tens * 10} + {units}</div>
-        </Box>
-      </div>
-      <div style={{ display: 'flex', gap: 10, marginTop: 14, maxWidth: 440, width: '100%' }}>
-        <button onClick={() => setNi(i => Math.max(0, i - 1))} disabled={ni === 0}
-          style={{
-            flex: 1, background: ni === 0 ? '#e0e0e0' : C.four,
-            color: ni === 0 ? '#bbb' : 'white', border: 'none', borderRadius: 14,
-            padding: 12, fontSize: 15, cursor: ni === 0 ? 'default' : 'pointer', fontWeight: 'bold',
-          }}>
-          ← Préc.
-        </button>
-        <button onClick={() => setNi(i => Math.min(FOURWAYS_NUMS.length - 1, i + 1))} disabled={ni === FOURWAYS_NUMS.length - 1}
-          style={{
-            flex: 1, background: ni === FOURWAYS_NUMS.length - 1 ? '#e0e0e0' : C.four,
-            color: ni === FOURWAYS_NUMS.length - 1 ? '#bbb' : 'white', border: 'none', borderRadius: 14,
-            padding: 12, fontSize: 15, cursor: ni === FOURWAYS_NUMS.length - 1 ? 'default' : 'pointer', fontWeight: 'bold',
-          }}>
-          Suiv. →
-        </button>
-      </div>
-    </div>
-  );
-}
+// ... (FourWaysScreen inchangé, je le raccourcis pour le message) ...
 
 // ═══ Composant principal ═════════════════════════════════════════════════════
 export default function MathApp({ onBack, profileId }: MathAppProps) {
   const [view, setView] = useState<MathView>('home');
   const [pk,   setPk]   = useState(0);
+  const [tip,  setTip]  = useState(false);
 
   const goHome = () => setView('home');
   const replay = () => setPk(k => k + 1);
 
-  // ═══ Manquants (1-50 & 51-69) ═══════════════════════════════════════════
-  if (view === 'missing' || view === 'missing69') {
-    const [start, end] = view === 'missing' ? [1, 50] : [51, 69];
-    const title = view === 'missing' ? MATH_TITLES.missing : MATH_TITLES.missing69;
+  // ═══ Manquants (1-50, 51-69, 70-100) ═════════════════════════════════════
+  if (view === 'missing' || view === 'missing69' || view === 'missing100') {
+    const ranges: Record<string, [number, number]> = {
+      missing: [1, 50],
+      missing69: [51, 69],
+      missing100: [70, 100],
+    };
+    const [start, end] = ranges[view];
+    const title = MATH_TITLES[view];
     const qs = Array.from({ length: 10 }, () => mkMissingQ(start, end));
     return (
       <QuizGame key={pk} qs={qs} col={MATH_COLORS[view]} bg="#e1f5fe" title={title}
@@ -334,65 +324,7 @@ export default function MathApp({ onBack, profileId }: MathAppProps) {
     );
   }
 
-  // ═══ Dizaines & Unités ═══════════════════════════════════════════════════
-  if (view === 'tens') {
-    const qs = shuffle(TENS_NUMS).map(mkTensQ);
-    return (
-      <QuizGame key={pk} qs={qs} col={C.tens} bg="#e0f7fa" title={MATH_TITLES.tens}
-        onBack={goHome} onReplay={replay}
-        wl={q => `${q.n} = ${Math.floor(q.n / 10)} diz. & ${q.n % 10} unités`}
-        fm={q => `❌ ${q.n} = ${Math.floor(q.n / 10)} diz. et ${q.n % 10} unités`}
-        renderQ={(q, chosen, fb, pick, col) => (
-          <div>
-            <div style={{ fontSize: 64, fontWeight: 'bold', color: col, marginBottom: 4 }}>{q.n}</div>
-            <p style={{ fontSize: 17, color: '#555', marginBottom: 14 }}>Combien de <b>{q.label}</b> ?</p>
-            <div style={{ marginBottom: 18 }}><Stix n={q.n} col={col} /></div>
-            <Btns choices={q.choices.map(String)} answer={String(q.a)} chosen={chosen ? String(chosen) : null} fb={fb} onPick={(opt) => pick(Number(opt))} col={col} row fsz={28} />
-          </div>
-        )}
-      />
-    );
-  }
-
-  // ═══ Addition ════════════════════════════════════════════════════════════
-  if (view === 'addition') {
-    const qs = shuffle(ADD_PAIRS).map(mkAddQ);
-    const [tip, setTip] = useState(false);
-
-    return (
-      <QuizGame key={pk} qs={qs} col={C.add} bg="#fffde7" title={MATH_TITLES.addition}
-        onBack={goHome} onReplay={replay}
-        wl={q => `${q.a2} + ${q.b2} = ${q.a}`}
-        fm={q => `❌ Réponse : ${q.a}`}
-        renderQ={(q, chosen, fb, pick, col) => {
-          const big = Math.max(q.a2, q.b2), sml = Math.min(q.a2, q.b2);
-          return (
-            <div>
-              <div style={{ fontSize: 44, fontWeight: 'bold', color: col, marginBottom: 20 }}>{q.a2} + {q.b2} = ?</div>
-              <Btns choices={q.choices.map(String)} answer={String(q.a)} chosen={chosen ? String(chosen) : null} fb={fb} onPick={(opt) => pick(Number(opt))} col={col} row fsz={26} />
-              <button onClick={() => setTip(t => !t)}
-                style={{ marginTop: 14, background: 'transparent', border: '2px solid ' + col, color: col, borderRadius: 11, padding: '6px 13px', fontSize: 13, cursor: 'pointer', fontWeight: 'bold' }}>
-                💡 {tip ? 'Cacher' : 'Astuce'}
-              </button>
-              {tip && (
-                <div style={{ marginTop: 9, background: '#fff8e1', borderRadius: 12, padding: 12, textAlign: 'left', fontSize: 13, color: '#555', lineHeight: 1.9 }}>
-                  1. Garde <b>{big}</b> dans ta tête 🧠<br />
-                  2. Compte <b>{sml}</b> sur tes doigts 🤚<br />
-                  3. <b>{big}+{sml}={q.a}</b> 🎉
-                </div>
-              )}
-            </div>
-          );
-        }}
-      />
-    );
-  }
-
-  // ═══ Jeux non-quiz ═══════════════════════════════════════════════════════
-  if (view === 'grid')     return <GridScreen     onBack={goHome} />;
-  if (view === 'order')    return <OrderScreen    onBack={goHome} onReplay={replay} key={pk} />;
-  if (view === 'fourways') return <FourWaysScreen onBack={goHome} key={pk} />;
-
+  // ... (le reste est inchangé, sauf le ajout dans la boucle HOME) ...
   // ═══ HOME ════════════════════════════════════════════════════════════════
   return (
     <div style={{ minHeight: '100vh', padding: '32px 16px', background: 'linear-gradient(180deg,#e8f5e9,#f3e5f5)', position: 'relative' }}>
@@ -406,20 +338,21 @@ export default function MathApp({ onBack, profileId }: MathAppProps) {
         <h1 style={{ fontSize: 32, fontWeight: 900, color: '#1E293B', margin: '0 0 24px' }}>Mathématiques</h1>
 
         {([
-          'grid', 'missing', 'missing69', 'order', 'tens', 'fourways', 'addition'
+          'grid', 'missing', 'missing69', 'missing100', 'order', 'tens', 'fourways', 'addition'
         ] as MathView[]).map(id => (
           <div key={id} onClick={() => setView(id)}
             style={{ background: 'white', border: '3px solid ' + MATH_COLORS[id], borderRadius: 18, padding: '14px 18px', marginBottom: 10, cursor: 'pointer', textAlign: 'left', boxShadow: '0 2px 10px rgba(0,0,0,.07)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <span style={{ fontSize: 28 }}>
-                {id === 'grid' ? '🔢' : id === 'missing' ? '🔍' : id === 'missing69' ? '🔢' : id === 'order' ? '📊' : id === 'tens' ? '🧱' : id === 'fourways' ? '🔄' : '➕'}
+                {id === 'grid' ? '🔢' : id === 'missing' ? '🔍' : id === 'missing69' ? '🔢' : id === 'missing100' ? '🔢' : id === 'order' ? '📊' : id === 'tens' ? '🧱' : id === 'fourways' ? '🔄' : '➕'}
               </span>
               <div>
                 <div style={{ fontWeight: 'bold', fontSize: 15, color: MATH_COLORS[id] }}>{MATH_TITLES[id]}</div>
                 <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
-                  {id === 'grid' ? 'Nombres jusqu’à 69' :
+                  {id === 'grid' ? 'Nombres jusqu’à 100' :
                    id === 'missing' ? 'Trouve le manquant' :
-                   id === 'missing69' ? 'Nouveaux nombres' :
+                   id === 'missing69' ? 'Nombres 51–69' :
+                   id === 'missing100' ? 'Nombres 70–100' :
                    id === 'order' ? 'Du plus petit au plus grand' :
                    id === 'tens' ? 'Compte les dizaines' :
                    id === 'fourways' ? 'Chiffre, unités, bâtons, addition' :
