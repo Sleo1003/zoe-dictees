@@ -1,5 +1,7 @@
 // src/components/PhoneticsApp.tsx
 import { useState } from 'react';
+interface Props { onBack: () => void; profileId: string; } // ← Ajoute profileId: string
+export default function EnglishApp({ onBack, profileId }: Props) { ... }
 import { ContextCards } from './SoundContrastExplorer/ContextCards';
 import type { LanguageCode } from '../types';
 import { playAudio } from '../utils/speech';

@@ -1,3 +1,4 @@
+// src/components/FrenchApp.tsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Confetti } from './Confetti';
 import { WarmUp } from './WarmUp';
@@ -11,13 +12,16 @@ import { shuffle } from '../utils/helpers';
 import { getErrors, saveErrors, getProgress, saveProgress, getParentStats, saveParentStats } from '../utils/storage';
 import type { Dictée, Round, ErrorCounts, Completed, Screen, GameType } from '../types';
 import PhoneticsApp from './PhoneticsApp';
-import SoundContrastExplorer from './SoundContrastExplorer'; // ← AJOUT
+import SoundContrastExplorer from './SoundContrastExplorer';
 
 interface FrenchAppProps {
   onBack: () => void;
+  profileId: string; // ← Ajout du support profil
 }
 
-const THEME = { bg: '#F8FAFC', card: '#FFFFFF', text: '#334155', textLight: '#64748B', border: '#E2E8F0', shadow: '0 6px 16px rgba(0,0,0,0.06)', radius: '20px' };
+const THEME = {
+  bg: '#F8FAFC', card: '#FFFFFF', text: '#334155', textLight: '#64748B', border: '#E2E8F0', shadow: '0 6px 16px rgba(0,0,0,0.06)', radius: '20px'
+};
 
 function buildRounds(d: Dictée): Round[] {
   const seq = shuffle(Object.values(GT).flatMap(t => [t, t]));
@@ -49,65 +53,88 @@ function buildSpecial(err: ErrorCounts): Round[] {
   return out;
 }
 
-export default function FrenchApp({ onBack }: FrenchAppProps) {
-  // ── Guards de navigation ──────────────────────────────────────────────────
-  const [showPhonetics,      setShowPhonetics]      = useState(false);
-  const [showSoundExplorer,  setShowSoundExplorer]  = useState(false); // ← AJOUT
+export default function FrenchApp({ onBack, profileId }: FrenchAppProps) {
+  // ── Guards de navigation
+  const [showPhonetics, setShowPhonetics] = useState(false);
+  const [showSoundExplorer, setShowSoundExplorer] = useState(false);
 
-  if (showPhonetics)     return <PhoneticsApp          onBack={() => setShowPhonetics(false)} />;
-  if (showSoundExplorer) return <SoundContrastExplorer onBack={() => setShowSoundExplorer(false)} />; // ← AJOUT
+  if (showPhonetics) return <PhoneticsApp onBack={() => setShowPhonetics(false)} profileId={profileId} />;
+  if (showSoundExplorer) return <SoundContrastExplorer onBack={() => setShowSoundExplorer(false)} profileId={profileId} />;
 
-  // ── State principal ───────────────────────────────────────────────────────
-  const [screen,     setScreen]     = useState<Screen>('home');
-  const [dicIdx,     setDicIdx]     = useState<number | null>(null);
-  const [rounds,     setRounds]     = useState<Round[]>([]);
-  const [ridx,       setRidx]       = useState(0);
-  const [score,      setScore]      = useState(0);
-  const [errs,       setErrs]       = useState<string[]>([]);
-  const [errCnt,     setErrCnt]     = useState<ErrorCounts>({});
-  const [completed,  setCompleted]  = useState<Completed>({});
-  const [key,        setKey]        = useState(0);
-  const [confetti,   setConfetti]   = useState(false);
+  // ── State principal
+  const [screen, setScreen] = useState<Screen>('home');
+  const [dicIdx, setDicIdx] = useState<number | null>(null);
+  const [rounds, setRounds] = useState<Round[]>([]);
+  const [ridx, setRidx] = useState(0);
+  const [score, setScore] = useState(0);
+  const [errs, setErrs] = useState<string[]>([]);
+  const [errCnt, setErrCnt] = useState<ErrorCounts>({});
+  const [completed, setCompleted] = useState<Completed>({});
+  const [key, setKey] = useState(0);
+  const [confetti, setConfetti] = useState(false);
   const [parentMode, setParentMode] = useState(false);
-  const [parentData, setParentData] = useState<any>({ sessions: 0, correct: 0, total: 0, words: {} });
+  const [parentData, setParentData] = useState<any>({ sessions: 0, correct: 0, total: 0, lastDate: '' });
   const timer = useRef<number | null>(null);
 
+  // ── Chargement des données du profil
   useEffect(() => {
-    getErrors().then(setErrCnt);
-    getProgress().then(setCompleted);
-    getParentStats().then(setParentData);
-  }, []);
+    getErrors(profileId).then(setErrCnt);
+    getProgress(profileId).then(setCompleted);
+    getParentStats(profileId).then(setParentData);
+  }, [profileId]);
 
-  const saveErr = useCallback((c: ErrorCounts) => { setErrCnt(c); saveErrors(c); }, []);
-  const fire    = useCallback(() => {
+  const saveErr = useCallback((c: ErrorCounts) => {
+    setErrCnt(c);
+    saveErrors(profileId, c);
+  }, [profileId]);
+
+  const fire = useCallback(() => {
     setConfetti(true);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setConfetti(false), 1500);
   }, []);
+
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
-  const startWarm    = (i: number) => { setDicIdx(i); setScreen('warmup'); };
-  const startGame    = (i: number) => { setRounds(buildRounds(DICTEES[i])); setRidx(0); setScore(0); setErrs([]); setKey(0); setScreen('game'); };
-  const startSpecial = () => { const r = buildSpecial(errCnt); if (!r.length) return; setDicIdx(null); setRounds(r); setRidx(0); setScore(0); setErrs([]); setKey(0); setScreen('game'); };
+  const startWarm = (i: number) => { setDicIdx(i); setScreen('warmup'); };
+  const startGame = (i: number) => { setRounds(buildRounds(DICTEES[i])); setRidx(0); setScore(0); setErrs([]); setKey(0); setScreen('game'); };
+  const startSpecial = () => {
+    const r = buildSpecial(errCnt);
+    if (!r.length) return;
+    setDicIdx(null);
+    setRounds(r);
+    setRidx(0);
+    setScore(0);
+    setErrs([]);
+    setKey(0);
+    setScreen('game');
+  };
 
   const onDone = (ok: boolean, w: string) => {
     if (ok) fire();
     const ns = score + (ok ? 1 : 0);
     setScore(ns);
-    if (!ok && w !== 'phrase') { setErrs(p => [...p, w]); saveErr({ ...errCnt, [w]: (errCnt[w] || 0) + 1 }); }
+    if (!ok && w !== 'phrase') {
+      setErrs(p => [...p, w]);
+      saveErr({ ...errCnt, [w]: (errCnt[w] || 0) + 1 });
+    }
     const next = ridx + 1;
     if (next >= rounds.length) {
       const pct = Math.round((ns / rounds.length) * 100);
       if (dicIdx !== null) {
         setCompleted(p => { const n = { ...p }; n[DICTEES[dicIdx].id] = pct; return n; });
-        saveProgress({ ...completed, [DICTEES[dicIdx].id]: pct });
+        saveProgress(profileId, { ...completed, [DICTEES[dicIdx].id]: pct });
       }
-      setParentData((d: any) => { const u = { ...d }; u.sessions++; u.total += rounds.length; u.correct += ns; u.lastDate = new Date().toLocaleDateString(); saveParentStats(u); return u; });
+      setParentData((d: any) => {
+        const u = { ...d, sessions: d.sessions + 1, total: d.total + rounds.length, correct: d.correct + ns, lastDate: new Date().toLocaleDateString() };
+        saveParentStats(profileId, u);
+        return u;
+      });
       setScreen('result');
     } else { setRidx(next); setKey(k => k + 1); }
   };
 
-  // ── Parent Dashboard ──────────────────────────────────────────────────────
+  // ── Parent Dashboard
   if (parentMode) return (
     <div style={{ minHeight: '100vh', padding: 32, background: '#F1F5F9' }}>
       <div style={{ maxWidth: 600, margin: '0 auto', background: '#fff', borderRadius: 24, padding: 28, boxShadow: THEME.shadow }}>
@@ -115,36 +142,31 @@ export default function FrenchApp({ onBack }: FrenchAppProps) {
           <h2 style={{ margin: 0, color: '#475569' }}>👨‍👩‍ Tableau de bord</h2>
           <button onClick={() => setParentMode(false)} style={{ background: '#E2E8F0', border: 'none', borderRadius: 12, padding: '8px 16px' }}>✕ Fermer</button>
         </div>
-        <div style={{ textAlign: 'center', color: '#64748B' }}>Stats à venir...</div>
+        <div style={{ textAlign: 'center', color: '#64748B' }}>
+          Séances : {parentData.sessions} | Score moyen : {parentData.total > 0 ? Math.round((parentData.correct / parentData.total) * 100) : 0}%
+        </div>
       </div>
     </div>
   );
 
-  // ── HOME ──────────────────────────────────────────────────────────────────
+  // ── HOME
   if (screen === 'home') return (
     <div style={{ minHeight: '100vh', padding: '32px 16px', background: 'linear-gradient(180deg,#F0F9FF,#F8FAFC)', position: 'relative' }}>
       <button onClick={onBack} style={{ position: 'absolute', top: 16, left: 16, padding: '8px 16px', borderRadius: 12, background: '#E2E8F0', border: 'none', cursor: 'pointer', fontWeight: 700, color: '#475569' }}>
         ← Accueil
       </button>
-
       <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
         <div style={{ fontSize: 48, marginBottom: 8 }}>📚✨</div>
         <h1 style={{ fontSize: 32, fontWeight: 900, color: '#1E293B', margin: '0 0 8px' }}>Français</h1>
         <p style={{ color: '#64748B', fontSize: 16, margin: '0 0 24px' }}>Dictées et Phonétique</p>
 
         {/* Bouton Phonétique Montessori */}
-        <button
-          onClick={() => setShowPhonetics(true)}
-          style={{ width: '100%', padding: 16, marginBottom: 14, borderRadius: 20, background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)', color: '#fff', border: 'none', fontWeight: 800, fontSize: 18, boxShadow: '0 4px 14px rgba(109,40,217,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}
-        >
+        <button onClick={() => setShowPhonetics(true)} style={{ width: '100%', padding: 16, marginBottom: 14, borderRadius: 20, background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)', color: '#fff', border: 'none', fontWeight: 800, fontSize: 18, boxShadow: '0 4px 14px rgba(109,40,217,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
           🗣️ Phonétique Montessori
         </button>
 
-        {/* ← AJOUT : Bouton Explorateur de Sons */}
-        <button
-          onClick={() => setShowSoundExplorer(true)}
-          style={{ width: '100%', padding: 16, marginBottom: 20, borderRadius: 20, background: 'linear-gradient(135deg,#4F46E5,#7C3AED)', color: '#fff', border: 'none', fontWeight: 800, fontSize: 18, boxShadow: '0 4px 14px rgba(79,70,229,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}
-        >
+        {/* Bouton Explorateur de Sons */}
+        <button onClick={() => setShowSoundExplorer(true)} style={{ width: '100%', padding: 16, marginBottom: 20, borderRadius: 20, background: 'linear-gradient(135deg,#4F46E5,#7C3AED)', color: '#fff', border: 'none', fontWeight: 800, fontSize: 18, boxShadow: '0 4px 14px rgba(79,70,229,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
           🔬 Explorateur de Sons Montessori
         </button>
 
@@ -156,11 +178,13 @@ export default function FrenchApp({ onBack }: FrenchAppProps) {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px,1fr))', gap: 14 }}>
           {DICTEES.map((d: Dictée) => {
-            const p = completed[d.id]; const stars = p ? Math.min(3, Math.round(p / 34)) : 0;
+            const p = completed[d.id];
+            const stars = p ? Math.min(3, Math.round(p / 34)) : 0;
             return (
               <button key={d.id} onClick={() => startWarm(d.id - 1)} style={{ padding: 20, borderRadius: 24, border: `3px solid ${stars ? '#FCD34D' : '#E2E8F0'}`, background: stars ? '#FEF3C7' : '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, boxShadow: THEME.shadow }}>
                 <span style={{ fontSize: 28 }}>{stars ? '⭐'.repeat(stars) : '🎮'}</span>
                 <span style={{ fontWeight: 800, color: '#334155', fontSize: 16 }}>Dictée {d.id}</span>
+                <span style={{ fontSize: 10, color: '#94A3B8', fontWeight: 700, background: '#F1F5F9', padding: '2px 8px', borderRadius: 10 }}>{d.level}</span>
               </button>
             );
           })}
@@ -169,7 +193,7 @@ export default function FrenchApp({ onBack }: FrenchAppProps) {
     </div>
   );
 
-  // ── RESULT ────────────────────────────────────────────────────────────────
+  // ── RESULT
   if (screen === 'result') {
     const pct = Math.round((score / rounds.length) * 100);
     const msg = pct >= 90 ? '🎉 Superbe !' : pct >= 70 ? '👏 Très bien !' : pct >= 50 ? '💪 Continue !' : '🌱 Chaque essai compte !';
@@ -189,12 +213,14 @@ export default function FrenchApp({ onBack }: FrenchAppProps) {
     );
   }
 
-  // ── WARMUP ────────────────────────────────────────────────────────────────
+  // ── WARMUP
   if (screen === 'warmup' && dicIdx !== null) return <WarmUp mots={DICTEES[dicIdx].mots} onDone={() => startGame(dicIdx)} />;
 
-  // ── GAME ──────────────────────────────────────────────────────────────────
-  const round = rounds[ridx]; if (!round) return null;
+  // ── GAME
+  const round = rounds[ridx];
+  if (!round) return null;
   const color = COLORS[round.type as GameType] || '#64748B';
+
   return (
     <div style={{ minHeight: '100vh', padding: '24px 16px', background: 'linear-gradient(180deg,#F0F9FF,#F8FAFC)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <Confetti show={confetti} />
@@ -204,15 +230,16 @@ export default function FrenchApp({ onBack }: FrenchAppProps) {
         <span style={{ fontWeight: 800, color: '#334155', fontSize: 18 }}>⭐ {score}</span>
       </div>
       <div style={{ width: '100%', maxWidth: 540, marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: '#64748B', marginBottom: 4 }}><span>Jeu {ridx + 1}/{rounds.length}</span></div>
-        <div style={{ height: 12, background: '#E2E8F0', borderRadius: 8 }}><div style={{ height: '100%', background: color, borderRadius: 8, width: `${(ridx / rounds.length) * 100}%`, transition: 'width .3s' }} /></div>
+        <div style={{ height: 12, background: '#E2E8F0', borderRadius: 8 }}>
+          <div style={{ height: '100%', background: color, borderRadius: 8, width: `${(ridx / rounds.length) * 100}%`, transition: 'width .3s' }} />
+        </div>
       </div>
       <div style={{ background: '#fff', borderRadius: 28, padding: 28, maxWidth: 540, width: '100%', boxShadow: THEME.shadow }}>
-        {round.type === 'mirror'   && <GameMirror   key={`m${key}`} word={round.word}   onDone={onDone} />}
-        {round.type === 'anagram'  && <GameAnagram  key={`a${key}`} word={round.word}   onDone={onDone} />}
-        {round.type === 'blank'    && <GameBlank    key={`b${key}`} phrase={round.phrase} mots={round.mots} onDone={onDone} />}
-        {round.type === 'tile'     && <GameTile     key={`t${key}`} phrase={round.phrase} onDone={onDone} />}
-        {round.type === 'qcm'      && <GameQCM      key={`q${key}`} data={round.data}   onDone={onDone} />}
+        {round.type === 'mirror' && <GameMirror key={`m${key}`} word={round.word} onDone={onDone} />}
+        {round.type === 'anagram' && <GameAnagram key={`a${key}`} word={round.word} onDone={onDone} />}
+        {round.type === 'blank' && <GameBlank key={`b${key}`} phrase={round.phrase} mots={round.mots} onDone={onDone} />}
+        {round.type === 'tile' && <GameTile key={`t${key}`} phrase={round.phrase} onDone={onDone} />}
+        {round.type === 'qcm' && <GameQCM key={`q${key}`} data={round.data} onDone={onDone} />}
       </div>
     </div>
   );

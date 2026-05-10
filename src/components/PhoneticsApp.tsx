@@ -1,4 +1,4 @@
-// src/components/PhoneticsApp.tsx - Version finale propre
+// src/components/PhoneticsApp.tsx
 import { useState } from 'react';
 import { playAudio } from '../utils/speech';
 
@@ -13,12 +13,16 @@ const SOUNDS = [
   { grapheme: 'an', fr: 'enfant', en: 'hand', frCue: 'Bouche ouverte, langue plate, résonance nasale', enCue: 'Son bref, mâchoire basse' },
 ];
 
-export default function PhoneticsApp({ onBack }: { onBack?: () => void }) {
+interface PhoneticsProps {
+  onBack?: () => void;
+  profileId?: string; // Accepté pour compatibilité, non utilisé ici
+}
+
+export default function PhoneticsApp({ onBack, profileId }: PhoneticsProps) {
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<'fr' | 'en' | null>(null);
   const [status, setStatus] = useState('👇 Clique sur une carte pour écouter');
   const [showMouth, setShowMouth] = useState<'fr' | 'en' | null>(null);
-
   const current = SOUNDS[index];
 
   const navigate = (dir: 'next' | 'prev' | 'random') => {
@@ -40,27 +44,47 @@ export default function PhoneticsApp({ onBack }: { onBack?: () => void }) {
 
   return (
     <div style={{ maxWidth: 850, margin: '2rem auto', padding: '1.5rem', fontFamily: 'system-ui, sans-serif', background: '#fff', borderRadius: '20px', boxShadow: '0 6px 24px rgba(0,0,0,0.06)' }}>
+      {onBack && (
+        <button onClick={onBack} style={{ position: 'absolute', top: 16, left: 16, padding: '8px 16px', borderRadius: 12, background: '#E2E8F0', border: 'none', cursor: 'pointer', fontWeight: 700, color: '#475569' }}>
+          ← Accueil
+        </button>
+      )}
+      
+      {/* Header Navigation */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <button onClick={() => navigate('prev')} style={{ padding: '0.5rem 1rem', cursor: 'pointer', borderRadius: '8px', border: '1px solid #ccc', background: '#f9fafb' }}>⬅️ Précédent</button>
         <h2 style={{ margin: 0, fontSize: '1.4rem', textAlign: 'center' }}>🔊 Son : <span style={{ color: '#2563eb', fontSize: '1.8rem' }}>"{current.grapheme}"</span></h2>
         <button onClick={() => navigate('next')} style={{ padding: '0.5rem 1rem', cursor: 'pointer', borderRadius: '8px', border: '1px solid #ccc', background: '#f9fafb' }}>Suivant ➡️</button>
       </div>
 
-      <div style={{ background: '#f8fafc', padding: '0.8rem', borderRadius: '10px', textAlign: 'center', marginBottom: '1.5rem', fontWeight: 500, minHeight: '28px' }}>{status}</div>
+      {/* Status */}
+      <div style={{ background: '#f8fafc', padding: '0.8rem', borderRadius: '10px', textAlign: 'center', marginBottom: '1.5rem', fontWeight: 500, minHeight: '28px' }}>
+        {status}
+      </div>
 
+      {/* Cartes FR / EN */}
       <div style={{ display: 'flex', gap: '1.2rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-        <button onClick={() => handleListen('fr', current.fr)} style={{ flex: 1, minWidth: 260, padding: '1.5rem', borderRadius: '14px', border: selected === 'fr' ? '3px solid #2563eb' : '2px solid #e2e8f0', background: selected === 'fr' ? '#eff6ff' : '#f8fafc', cursor: 'pointer' }}>
+        <button onClick={() => handleListen('fr', current.fr)} style={{
+          flex: 1, minWidth: 260, padding: '1.5rem', borderRadius: '14px',
+          border: selected === 'fr' ? '3px solid #2563eb' : '2px solid #e2e8f0',
+          background: selected === 'fr' ? '#eff6ff' : '#f8fafc', cursor: 'pointer'
+        }}>
           <span style={{ fontSize: '1.8rem' }}>🇫🇷</span>
           <h3 style={{ margin: '0.5rem 0', color: '#0f172a', fontSize: '1.5rem' }}>{current.fr}</h3>
           <p style={{ fontSize: '0.9rem', color: '#475569' }}>👉 {current.frCue}</p>
         </button>
-        <button onClick={() => handleListen('en', current.en)} style={{ flex: 1, minWidth: 260, padding: '1.5rem', borderRadius: '14px', border: selected === 'en' ? '3px solid #dc2626' : '2px solid #e2e8f0', background: selected === 'en' ? '#fef2f2' : '#f8fafc', cursor: 'pointer' }}>
+        <button onClick={() => handleListen('en', current.en)} style={{
+          flex: 1, minWidth: 260, padding: '1.5rem', borderRadius: '14px',
+          border: selected === 'en' ? '3px solid #dc2626' : '2px solid #e2e8f0',
+          background: selected === 'en' ? '#fef2f2' : '#f8fafc', cursor: 'pointer'
+        }}>
           <span style={{ fontSize: '1.8rem' }}>🇬🇧</span>
           <h3 style={{ margin: '0.5rem 0', color: '#0f172a', fontSize: '1.5rem' }}>{current.en}</h3>
           <p style={{ fontSize: '0.9rem', color: '#475569' }}>👉 {current.enCue}</p>
         </button>
       </div>
 
+      {/* 👄 Animation Bouche */}
       {showMouth && (
         <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f0fdf4', borderRadius: '12px', textAlign: 'center', border: '1px solid #86efac' }}>
           <p style={{ margin: '0 0 0.5rem', fontWeight: 600, color: '#166534' }}>👄 Position de la bouche ({showMouth === 'fr' ? 'Français' : 'Anglais'})</p>

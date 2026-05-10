@@ -1,20 +1,61 @@
-import { useRef } from 'react';
-import { CONFETTI } from '../data/content';
-export function Confetti({ show }: { show: boolean }) {
-  const ref = useRef<any[]>([]);
-  if (ref.current.length === 0) {
-    ref.current = Array.from({ length: 36 }).map((_, i) => ({
-      id: i, left: Math.random() * 100, color: CONFETTI[Math.floor(Math.random() * CONFETTI.length)],
-      delay: Math.random() * 0.4, duration: 0.9 + Math.random() * 0.7, size: 9 + Math.random() * 9, shape: Math.random() > 0.5 ? '50%' : '3px'
-    }));
-  }
-  if (!show) return null;
-  return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 9999, overflow: 'hidden' }}>
-      {ref.current.map(p => (
-        <div key={p.id} style={{ position: 'absolute', left: `${p.left}%`, top: -20, width: p.size, height: p.size, background: p.color, borderRadius: p.shape, animation: `confetti ${p.duration}s ${p.delay}s ease-in forwards` }} />
-      ))}
-      <div style={{ position: 'absolute', top: '35%', left: '50%', transform: 'translateX(-50%)', fontSize: 80, animation: 'pop 0.6s ease-out' }}>🌟</div>
-    </div>
-  );
+// src/components/Confetti.tsx
+import { useEffect, useState } from 'react';
+
+interface ConfettiProps {
+  show: boolean;
 }
+
+// Configuration autonome (plus d'import manquant)
+const CONFETTI_CONFIG = {
+  colors: ['#4F46E5', '#7C3AED', '#059669', '#F59E0B', '#DC2626'],
+  count: 80,
+  duration: 1.5,
+};
+
+export const Confetti = ({ show }: ConfettiProps) => {
+  const [particles, setParticles] = useState<JSX.Element[]>([]);
+
+  useEffect(() => {
+    if (!show) { setParticles([]); return; }
+    
+    const newParticles = Array.from({ length: CONFETTI_CONFIG.count }, (_, i) => {
+      const left = Math.random() * 100;
+      const delay = Math.random() * 0.5;
+      const duration = CONFETTI_CONFIG.duration + Math.random() * 1;
+      const color = CONFETTI_CONFIG.colors[i % CONFETTI_CONFIG.colors.length];
+      
+      return (
+        <div
+          key={i}
+          style={{
+            position: 'fixed',
+            left: `${left}%`,
+            top: '-10px',
+            width: '8px',
+            height: '8px',
+            backgroundColor: color,
+            borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+            animation: `confetti-fall ${duration}s ease-in ${delay}s forwards`,
+            zIndex: 9999,
+            pointerEvents: 'none',
+          }}
+        />
+      );
+    });
+    setParticles(newParticles);
+  }, [show]);
+
+  if (!show) return null;
+
+  return (
+    <>
+      <style>{`
+        @keyframes confetti-fall {
+          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+      `}</style>
+      {particles}
+    </>
+  );
+};

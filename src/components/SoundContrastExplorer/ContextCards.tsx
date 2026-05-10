@@ -1,92 +1,32 @@
 // src/components/SoundContrastExplorer/ContextCards.tsx
-import React from 'react';
-import { ContrastPair, LanguageCode } from '../../types';
-import { playAudio } from '../../utils/speech';
-import './ContextCards.css';
+import type { ContrastPair, LanguageCode } from '../../types';
+
+// 🔑 Même helper que phonicsFeedback.ts pour cohérence
+const langKey = (lang: LanguageCode): 'french' | 'english' =>
+  lang === 'fr' ? 'french' : 'english';
 
 interface ContextCardsProps {
   pair: ContrastPair;
-  selectedLanguage: LanguageCode | null;
-  onLanguageSelect: (lang: LanguageCode) => void;
-  onShowMouthAnimation: (lang: LanguageCode) => void;
+  lang: LanguageCode;
 }
 
-export const ContextCards: React.FC<ContextCardsProps> = ({
-  pair,
-  selectedLanguage,
-  onLanguageSelect,
-  onShowMouthAnimation,
-}) => {
-  
-  const handleAudio = (lang: LanguageCode, e: React.MouseEvent) => {
-    e.stopPropagation(); // Empêche la sélection de la carte quand on clique sur 🔊
-    const src = lang === 'fr' ? pair.french.audio : pair.english.audio;
-    playAudio(src);
-  };
-
-  const renderCard = (lang: LanguageCode) => {
-    const data = pair[lang];
-    const isFrench = lang === 'fr';
-    const isSelected = selectedLanguage === lang;
-    const flag = isFrench ? '🇫🇷' : '🇬🇧';
-    const langLabel = isFrench ? 'Français' : 'English';
-    const themeClass = isFrench ? 'card-fr' : 'card-en';
-
-    return (
-      <button
-        key={lang}
-        className={`context-card ${themeClass} ${isSelected ? 'is-selected' : ''}`}
-        onClick={() => onLanguageSelect(lang)}
-        aria-label={`${langLabel} : ${data.word} se prononce ${data.ipa}`}
-        aria-pressed={isSelected}
-        tabIndex={0}
-      >
-        <div className="card-header">
-          <span className="card-flag" aria-hidden="true">{flag}</span>
-          <span className="card-lang-label">{langLabel}</span>
-        </div>
-
-        <div className="card-content">
-          <div className="card-word">{data.word}</div>
-          <div className="card-ipa" aria-label={`Prononciation : ${data.ipa}`}>
-            {data.ipa}
-          </div>
-          <div className="card-cue" aria-hidden="true">
-            👉 {data.rule.articulatoryCue}
-          </div>
-        </div>
-
-        <div className="card-actions">
-          <button
-            className="btn-action"
-            onClick={(e) => handleAudio(lang, e)}
-            aria-label={`Écouter ${data.word}`}
-            title="Écouter"
-          >
-            🔊 Écouter
-          </button>
-          <button
-            className="btn-action"
-            onClick={(e) => {
-              e.stopPropagation();
-              onShowMouthAnimation(lang);
-            }}
-            aria-label={`Voir le mouvement de la bouche`}
-            title="Voir la bouche"
-          >
-            👄 Bouche
-          </button>
-        </div>
-      </button>
-    );
-  };
+export default function ContextCards({ pair, lang }: ContextCardsProps) {
+  const data = pair[langKey(lang)]; // ✅ Correction TypeScript ici
 
   return (
-    <section className="context-cards-wrapper" aria-label="Comparaison bilingue des mots">
-      {renderCard('fr')}
-      {renderCard('en')}
-    </section>
+    <div style={{ 
+      padding: '1rem', borderRadius: '12px', background: '#f8fafc', 
+      border: '1px solid #e2e8f0', marginBottom: '1rem' 
+    }}>
+      <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.2rem', color: '#1e293b' }}>
+        {lang === 'fr' ? '🇫🇷 Français' : '🇬🇧 English'}
+      </h3>
+      <p style={{ margin: 0, fontSize: '1rem', color: '#475569' }}>
+        <strong>{data.word}</strong> <span style={{ color: '#64748b' }}>({data.ipa})</span>
+      </p>
+      <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem', color: '#64748b', fontStyle: 'italic' }}>
+        {data.rule.description}
+      </p>
+    </div>
   );
-};
-
-export default ContextCards;
+}

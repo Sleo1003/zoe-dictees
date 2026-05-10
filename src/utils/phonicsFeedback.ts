@@ -1,65 +1,37 @@
 // src/utils/phonicsFeedback.ts
-import { ContrastPair, LanguageCode } from '../types';
+import type { ContrastPair, LanguageCode, PhonemeRule } from '../types';
 
-interface FeedbackInput {
-  pair: ContrastPair;
-  userLanguage: LanguageCode;
-  isCorrect: boolean;
-  traceAccuracy: number;
-}
+// 🔑 Helper sécurisé pour mapper 'fr'/'en' → 'french'/'english'
+const langKey = (lang: LanguageCode): 'french' | 'english' =>
+  lang === 'fr' ? 'french' : 'english';
 
-interface FeedbackOutput {
-  message: string;
-  type: 'success' | 'guidance';
-  ruleReminder?: string;
-  nextStepSuggestion?: string;
-}
-
-export const generateFeedback = ({
-  pair,
-  userLanguage,
-  isCorrect,
-  traceAccuracy
-}: FeedbackInput): FeedbackOutput => {
-  
-  const currentRule = userLanguage === 'fr' ? pair.french.rule : pair.english.rule;
-  const contrast = currentRule.contrastWith;
+export const getPhonicsFeedback = (
+  pair: ContrastPair,
+  userLanguage: LanguageCode,
+  currentRule: PhonemeRule,
+  isCorrect: boolean
+): string => {
+  const userWord = pair[langKey(userLanguage)].word;
 
   if (isCorrect) {
-    return {
-      message: `🎯 Excellent ! Tu as associé "${pair[userLanguage].word}" au son /${currentRule.ipa}/.`,
-      type: 'success',
-      ruleReminder: `Rappel : ${currentRule.articulatoryCue}`,
-      nextStepSuggestion: contrast 
-        ? `Et si on comparait avec l'autre langue ? En ${contrast.otherLanguage === 'fr' ? 'français' : 'anglais'}, "${pair[contrast.otherLanguage].word}" se prononce /${pair[contrast.otherLanguage].ipa}/.`
-        : 'Prêt·e pour un nouveau son ?'
-    };
+    const contrast = currentRule.contrastWith;
+    if (contrast) {
+      const otherLang = contrast.otherLanguage;
+      const otherWord = pair[langKey(otherLang)].word;
+      const otherIPA = pair[langKey(otherLang)].ipa;
+      return `🎯 Excellent ! Tu as associé "${userWord}" au son /${currentRule.ipa}/. Et si on comparait avec l'autre langue ? En ${otherLang === 'fr' ? 'français' : 'anglais'}, "${otherWord}" se prononce /${otherIPA}/.`;
+    }
+    return `🎯 Excellent ! Tu as associé "${userWord}" au son /${currentRule.ipa}/.`;
   }
 
-  // Feedback de guidage (jamais juste "faux")
-  return {
-    message: `🤔 Presque ! Écoutons encore : "${pair[userLanguage].word}" commence par /${currentRule.ipa}/.`,
-    type: 'guidance',
-    ruleReminder: `Astuce : ${currentRule.description}. ${contrast ? contrast.difference : ''}`,
-    nextStepSuggestion: 'Appuie sur 🔊 pour réécouter, ou 👄 pour voir le mouvement de la bouche.'
-  };
+  return `🤔 Presque ! Écoutons encore : "${userWord}" commence par /${currentRule.ipa}/.`;
 };
 
-// Fonction utilitaire pour générer des prompts métacognitifs variés
-export const getMetacognitivePrompt = (grapheme: string, language: LanguageCode): string => {
-  const prompts = {
-    fr: [
-      `Pourquoi "${grapheme}" sonne-t-il comme ça en français ?`,
-      `Quel mouvement fais-tu avec ta bouche pour dire /${grapheme}/ ?`,
-      `Peux-tu trouver un autre mot français qui commence comme "${grapheme}" ?`
-    ],
-    en: [
-      `Why does "${grapheme}" sound like that in English?`,
-      `What does your tongue do when you say /${grapheme}/?`,
-      `Can you think of another English word that starts like "${grapheme}"?`
-    ]
-  };
-  
-  const list = prompts[language];
-  return list[Math.floor(Math.random() * list.length)];
+export const getPatternPrompt = (
+  pair: ContrastPair,
+  userLanguage: LanguageCode,
+  currentRule: PhonemeRule
+): string => {
+  const userWord = pair[langKey(userLanguage)].word;
+  return `💡 Observe bien : "${userWord}" utilise le son /${currentRule.ipa}/. Quelle est la différence avec l'autre langue ?`;
 };

@@ -3,7 +3,8 @@ import { useEffect, useRef } from 'react';
 type Subject = 'home' | 'french' | 'english' | 'math';
 
 interface HomePageProps {
-  onSelectSubject: (subject: Subject) => void;
+  onSelectSubject: (s: string) => void;  // ← 'string' pour matcher App.tsx
+  onOpenDashboard: () => void;            // ← Nouvelle prop pour le bouton parents
 }
 
 export default function HomePage({ onSelectSubject }: HomePageProps) {

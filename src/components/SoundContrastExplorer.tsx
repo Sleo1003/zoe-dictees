@@ -247,9 +247,13 @@ function SortGame({ words, onComplete }: { words: { fr: string[]; en: string[] }
 }
 
 // ─── Composant Principal ──────────────────────────────────────────────────────
-interface Props { onBack: () => void; }
+// APRÈS :
+interface Props { 
+  onBack: () => void; 
+  profileId?: string; // ← Ajout optionnel pour compatibilité multi-profils
+}
 
-export default function SoundContrastExplorer({ onBack }: Props) {
+export default function SoundContrastExplorer({ onBack, profileId }: Props) {
   const [sIdx,     setSIdx]     = useState(0);
   const [phase,    setPhase]    = useState<Phase>('listen');
   const [heard,    setHeard]    = useState<Set<Lang>>(new Set());
